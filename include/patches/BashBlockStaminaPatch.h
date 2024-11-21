@@ -15,11 +15,11 @@ namespace BashBlockStaminaPatch
 		float perkMult = 1.0f;
 		if (a_hitData->target) {
 			auto actorPtr = a_hitData->target.get();
-			if (actorPtr.get()->IsPlayerRef()) {
-				auto perk = Settings::GetSingleton()->BlockStaminaPerk;
-				if (perk && actorPtr->HasPerk(Settings::GetSingleton()->BlockStaminaPerk)) {
-					perkMult = 0.5f;
-				}
+
+            auto leftHand = actorPtr->GetEquippedObject(true);       
+			auto perk = Settings::GetSingleton()->BlockStaminaPerk;
+            if (perk && leftHand && leftHand->IsArmor() && actorPtr->HasPerk(Settings::GetSingleton()->BlockStaminaPerk)) {
+				perkMult = 0.5f;
 			}
 		}
 
@@ -53,10 +53,14 @@ namespace BashBlockStaminaPatch
 
 			float playerBashPerkMult = 1.0f;
 			if (actor && actor->IsPlayerRef()) {
-				auto perk = Settings::GetSingleton()->BashStaminaPerk;
+                auto settings = Settings::GetSingleton();
+                auto perk     = settings->BashStaminaPerk;
+                auto perk25   = settings->BashStaminaPerk25;
 				if (perk && actor->HasPerk(perk)) {
 					playerBashPerkMult = 0.5f;
-				}
+                } else if (perk25 && actor->HasPerk(perk25)) {
+                    playerBashPerkMult = 0.75f;
+                }
 			}
 
 			return (bashAttackStamina * a_attackData->data.staminaMult) * playerBashPerkMult;
@@ -70,7 +74,7 @@ namespace BashBlockStaminaPatch
 			auto equippedWeaponWeight = equippedWeapon ? equippedWeapon->weight : 1.0F;
 
 			if (!equippedWeapon) {
-				equippedWeapon = Conditions::GetUnarmedWeapon();
+                equippedWeapon = Utility::GetUnarmedWeapon();
 			}
 
 			static auto* staminaAttackWeaponBase = gameSettings->GetSetting("fStaminaAttackWeaponBase");
@@ -95,7 +99,7 @@ namespace BashBlockStaminaPatch
 				jmp(rax);
 			}
 		};
-
+        
 		auto patch = new stamDmg();
 		patch->ready();
 

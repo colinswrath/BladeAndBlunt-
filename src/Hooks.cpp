@@ -9,11 +9,11 @@ namespace Hooks
 	bool InstallHooks()
 	{
 		if (!UpdateManager::Install()) { return false; }
-		if (!MiscPatches::InstallScalePatch()) { return false; }
-		if (!MiscPatches::InstallFBlockPatch()) { return false; }
-		if (!MiscPatches::InstallSpellCapPatch()) {
-			return false;
-		}
+		if (!MiscPatches::MiscPatches::InstallScalePatch()) { return false; }
+		if (!MiscPatches::MiscPatches::InstallFBlockPatch()) { return false; }
+		if (!MiscPatches::MiscPatches::InstallSpellCapPatch()) { return false; }
+        if (!MiscPatches::MiscPatches::InstallStaggerFormulaPatch()) { return false; }
+        MiscPatches::AnimEventHook::Install();
 		
 		WeaponFireHandler::InstallArrowReleaseHook();
 

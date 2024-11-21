@@ -1,5 +1,5 @@
 #pragma once
-#include "InjuryPenaltyManager.h"
+#include "injury/InjuryPenaltyManager.h"
 
 namespace Serialization
 {
@@ -50,8 +50,11 @@ namespace Serialization
 			logger::error("Failed to load size");
 			return;
 		} else {
-			injManager->currentInjuryPenalty = deserializedVal;
-			logger::info(FMT_STRING("Deserialized: {}"), std::to_string(deserializedVal));
+            /*injManager->currentInjuryPenalty = deserializedVal;
+            logger::info(FMT_STRING("Deserialized: {}"), std::to_string(deserializedVal));*/
+			injManager->currentInjuryPenalty = 0;
+            injManager->RemoveAttributePenalty();
+            logger::info("Existing save info found. Removing attribute penalty.");
 		}
 	}
 

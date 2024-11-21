@@ -12,6 +12,7 @@ namespace Hooks
 	inline REL::Relocation<uintptr_t> arrow_release_handler{ REL::RelocationID(41778, 42859), REL::Relocate(0x133, 0x138) };
 	static REL::Relocation<std::uintptr_t> armorRating1(REL::RelocationID(42842, 44014));
 	static REL::Relocation<std::uintptr_t> armorRating2(REL::RelocationID(37605, 38558));
+    static REL::Relocation<std::uintptr_t> staggerHook(REL::RelocationID(34188, 34982), 0x61);
 
 	bool InstallHooks();
 	bool InstallBashMultHook();

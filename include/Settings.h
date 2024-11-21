@@ -31,8 +31,13 @@ public:
     RE::SpellItem* InjurySpell3;
     RE::SpellItem* jumpSpell;
     RE::SpellItem* PowerAttackStopSpell;
+
+    RE::SpellItem* MAG_ChargedShotSpell01;
+    RE::SpellItem* MAG_ChargedShotSpell02;
+    RE::SpellItem* MAG_ChargedShotSpell03;
 	
 	RE::BGSPerk* BashStaminaPerk;
+    RE::BGSPerk* BashStaminaPerk25;
 	RE::BGSPerk* BlockStaminaPerk;
 	RE::BGSPerk* BlockStaggerPerk;
 
@@ -40,7 +45,11 @@ public:
     RE::TESGlobal* InjuryChance50Health;
 	RE::TESGlobal* InjuryChance25Health;
 	RE::TESGlobal* Survival_ModeEnabled;
-	RE::TESGlobal* MAG_InjuriesSMOnly;
+    RE::TESGlobal* MAG_InjuriesSMOnly;
+    RE::TESGlobal* MAG_DifficultyGlobal;
+
+    RE::TESGlobal* MAG_ChargedShotTimer01;
+    RE::TESGlobal* MAG_ChargedShotTimer02;
 
 	RE::TESGlobal* MAG_levelBasedDifficulty;
 	RE::TESGlobal* MAG_InjuryAndRest;
@@ -50,6 +59,8 @@ public:
 	RE::EffectSetting* MAG_ParryWindowEffect;
 	RE::EffectSetting* MAG_InjuryCooldown1;
 	RE::EffectSetting* MAG_InjuryCooldown2;
+
+    RE::StaggerEffect* stagger;
 
 	RE::BGSKeyword* DualWieldReplaceKeyword;
 
@@ -68,10 +79,12 @@ public:
 	float injury2AVPercent;
 	float injury3AVPercent;
 	float injuryUpdateFrequency = 0.5f;
+    float zoomTimeThreshold2    = 3.0;
+    float zoomTimeThreshold3    = 10.0; 
 
 	bool IsBlockingWeaponSpellCasted = false;
 
-	int maxFrameCheck = 6;
+	int maxFrameCheck = 7;
 
 	static RE::FormID ParseFormID(const std::string& str);
 

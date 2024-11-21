@@ -1,12 +1,13 @@
 #pragma once
 
-#include "Conditions.h"
+#include "Utility.h"
 #include "Hooks.h"
-#include "InjuryPenaltyManager.h"
+#include "injury/InjuryPenaltyManager.h"
 
 static float lastTime;
+static float zoomTime;
 
-using namespace Conditions;
+using namespace Utility;
 
 class UpdateManager
 {
@@ -31,7 +32,6 @@ private:
 			UpdateManager::frameCount = 0;
 		} else {
 			RE::PlayerCharacter* player = Cache::GetPlayerSingleton();
-			auto playerCamera = RE::PlayerCamera::GetSingleton();
 
             if (player->IsGodMode())
             {
@@ -74,7 +74,7 @@ private:
 				    }
 				    break;
 			    case 2:
-				    if (IsBowDrawNoZoomCheck(player, playerCamera)) {
+				    if (IsBowDrawNoZoomCheck(player)) {
 					    if (!HasSpell(player, settings->BowStaminaSpell)) {
 						    player->AddSpell(settings->BowStaminaSpell);
 					    }
@@ -83,7 +83,7 @@ private:
 				    }
 				    break;
 			    case 3:
-				    if (IsXbowDrawCheck(player, playerCamera)) {
+				    if (IsXbowDrawCheck(player)) {
 					    if (!HasSpell(player, settings->XbowStaminaSpell)) {
 						    player->AddSpell(settings->XbowStaminaSpell);
 					    }
@@ -97,7 +97,7 @@ private:
 						    player->AddSpell(settings->IsAttackingSpell);
 					    }
 
-                        settings->wasPowerAttacking = Conditions::IsPowerAttacking(player);
+                        settings->wasPowerAttacking = Utility::IsPowerAttacking(player);
 
 				    } else {
 					    if (HasSpell(player, settings->IsAttackingSpell)) {
@@ -106,15 +106,14 @@ private:
 
                         if (settings->wasPowerAttacking) {
                             settings->wasPowerAttacking = false;
-                            Conditions::ApplySpell(player, player, settings->PowerAttackStopSpell);
+                            Utility::ApplySpell(player, player, settings->PowerAttackStopSpell);
                         }
 
 					    if (IsBlocking(player)) {
-						    auto leftHand = player->GetEquippedObject(true);
 						    //Parry setup
-						    if ((!leftHand || leftHand->IsWeapon()) && !settings->IsBlockingWeaponSpellCasted) {
+						    if (!settings->IsBlockingWeaponSpellCasted) {
 							    settings->IsBlockingWeaponSpellCasted = true;
-							    Conditions::ApplySpell(player, player, settings->MAGParryControllerSpell);
+                                Utility::ApplySpell(player, player, settings->MAGParryControllerSpell);
 						    }
 
 						    if (!HasSpell(player, settings->IsBlockingSpell)) {
@@ -144,30 +143,28 @@ private:
                         player->RemoveSpell(settings->IsSwimmingSpell);
                     }
 
+                    //Check difficulty global
+                    settings->MAG_DifficultyGlobal->value = player->GetGameStatsData().difficulty;
+                    
 				    break;
 			    case 6:
 				    {
-                        //Cache mount and remove spell if not mounted
-					    auto* state = player->AsActorState();
+                        RE::ActorPtr actorCheck = nullptr;
+                        bool isMounted = player->GetMount(actorCheck);
+                        auto state = isMounted ? actorCheck->AsActorState() : player->AsActorState();
+
 					    if (state->IsSprinting()) {
 						    if (!HasSpell(player, settings->IsSprintingSpell))
 							    player->AddSpell(settings->IsSprintingSpell);
-                            
-						    RE::ActorPtr mount = nullptr;
-
-						    GetMount(player,&mount);
-                            if (mount) {
-							    mount->AddSpell(settings->MountSprintingSpell);
-						    }
+                            if (isMounted) {
+                                actorCheck->AddSpell(settings->MountSprintingSpell);
+                            }
 
 					    } else if (HasSpell(player, settings->IsSprintingSpell)) {
 						    player->RemoveSpell(settings->IsSprintingSpell);
 
-						    RE::ActorPtr mount = nullptr;
-						    GetMount(player,&mount);
-
-						    if (mount) {
-                                mount->RemoveSpell(settings->MountSprintingSpell);
+						    if (actorCheck) {
+                                actorCheck->RemoveSpell(settings->MountSprintingSpell);
 						    }
 					    }
 				    }
@@ -180,14 +177,20 @@ private:
 
         if (!Cache::GetUISingleton()->GameIsPaused()) {
 
-		    if (Cache::g_deltaTime > 0) {
-			    lastTime += Cache::g_deltaTime;
-			    if (lastTime >= settings->injuryUpdateFrequency) {
-				    auto inj = InjuryPenaltyHandler::GetSingleton();
-				    inj->CheckInjuryAvPenalty();
-				    lastTime = 0;
-			    }
-		    }
+            if (Cache::g_deltaTime > 0) {
+                auto playerCamera = RE::PlayerCamera::GetSingleton();
+                if (playerCamera->bowZoomedIn) {
+                    // Note zoom start time
+                    zoomTime += Cache::g_deltaTime;
+                    // Apply appropriate spell based on time dif
+                    ApplyZoomSpell();
+                }
+                else {
+                    // Remove spells and reset zoom timer
+                    zoomTime = 0;
+                    RemoveZoomSpells();
+                }
+            }
         }
 
  
@@ -204,13 +207,9 @@ private:
 
 	inline static REL::Relocation<decltype(OnFrameUpdate)> _OnFrameFunction;
 
-	static bool IsXbowDrawCheck(RE::PlayerCharacter* player, RE::PlayerCamera* playerCamera)
+	static bool IsXbowDrawCheck(RE::PlayerCharacter* player)
 	{
 		auto attackState = player->AsActorState()->GetAttackState();
-
-		if (playerCamera->bowZoomedIn) {
-			return false;
-		}
 
 		auto equippedWeapon = skyrim_cast<RE::TESObjectWEAP*>(player->GetEquippedObject(false));
 		if (!equippedWeapon) {
@@ -233,14 +232,9 @@ private:
 		return false;
 	}
 
-	static bool IsBowDrawNoZoomCheck(RE::PlayerCharacter* player, RE::PlayerCamera* playerCamera)
+	static bool IsBowDrawNoZoomCheck(RE::PlayerCharacter* player)
 	{
 		auto attackState = player->AsActorState()->GetAttackState();
-
-		if (playerCamera->bowZoomedIn) 
-		{
-			return false;
-		}
 
 		auto equippedWeapon = skyrim_cast<RE::TESObjectWEAP*>(player->GetEquippedObject(false));
 		if (!equippedWeapon) {
@@ -269,4 +263,33 @@ private:
 		}
 		return false;
 	}
+
+    static void ApplyZoomSpell()
+    {
+        auto settings = Settings::GetSingleton();
+        RE::PlayerCharacter* player = Cache::GetPlayerSingleton();
+
+        if (zoomTime > settings->MAG_ChargedShotTimer02->value) {
+            player->RemoveSpell(settings->MAG_ChargedShotSpell02);
+            player->AddSpell(settings->MAG_ChargedShotSpell03);
+        }
+        else if (zoomTime > settings->MAG_ChargedShotTimer01->value) {
+            player->RemoveSpell(settings->MAG_ChargedShotSpell01);
+            player->AddSpell(settings->MAG_ChargedShotSpell02);
+        }
+        else if (zoomTime < 3.0f) {
+            
+            player->AddSpell(settings->MAG_ChargedShotSpell01);
+        }
+    }
+
+    static void RemoveZoomSpells()
+    {
+        auto settings = Settings::GetSingleton();
+        RE::PlayerCharacter* player = Cache::GetPlayerSingleton();
+
+        player->RemoveSpell(settings->MAG_ChargedShotSpell01);
+        player->RemoveSpell(settings->MAG_ChargedShotSpell02);
+        player->RemoveSpell(settings->MAG_ChargedShotSpell03);
+    }
 };
