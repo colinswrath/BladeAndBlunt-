@@ -4,7 +4,6 @@
 #include "Settings.h"
 #include "Utility.h"
 
-using namespace Utility;
 namespace MiscPatches
 {
     bool MiscPatches::InstallScalePatch() 
@@ -52,42 +51,6 @@ namespace MiscPatches
 
 	    logger::info("Absorb cap hook installed.");
 	    return true;
-    }
-
-    RE::BSEventNotifyControl AnimEventHook::ProcessEvent_PC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
-                                                            RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
-    {
-        ProcessCharacterEvent(a_sink, a_event, a_eventSource);
-        return _ProcessEvent_PC(a_sink, a_event, a_eventSource);
-    }
-
-    void AnimEventHook::HandleJumpAnim()
-    {
-        auto settings = Settings::GetSingleton();
-        auto player   = RE::PlayerCharacter::GetSingleton();
-        if (!player->IsGodMode()) {
-            Utility::ApplySpell(player, player, settings->jumpSpell);
-        }
-    }
-
-    void AnimEventHook::ProcessCharacterEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
-                                              [[maybe_unused]]RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
-    {
-        if (!a_event->holder) {
-            return;
-        }
-
-        std::string_view eventTag = a_event->tag.data();
-        uint32_t         str      = hash(eventTag.data(), eventTag.size());
-
-        RE::Actor* actor = const_cast<RE::Actor*>(a_event->holder->As<RE::Actor>());
-        if (!actor) {
-            return;
-        }
-
-        if (str == "JumpUp"_h) {
-            HandleJumpAnim();
-        }
     }
 
     std::int32_t MiscPatches::AbsorbCapPatch(RE::ActorValueOwner* akAvOwner, RE::ActorValue akValue)

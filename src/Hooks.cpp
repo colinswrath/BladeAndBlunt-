@@ -13,8 +13,8 @@ namespace Hooks
 		if (!MiscPatches::MiscPatches::InstallFBlockPatch()) { return false; }
 		if (!MiscPatches::MiscPatches::InstallSpellCapPatch()) { return false; }
         if (!MiscPatches::MiscPatches::InstallStaggerFormulaPatch()) { return false; }
-        MiscPatches::AnimEventHook::Install();
-		
+
+        AnimEventHandler::Install();
 		WeaponFireHandler::InstallArrowReleaseHook();
 
 		auto runtime = REL::Module::GetRuntime();

@@ -2,6 +2,7 @@
 #include <Utility.h>
 #include <injury/InjuryApplicationManager.h>
 #include <RecentHitEventData.h>
+using namespace Utility;
 
 class OnHitEventHandler : public RE::BSTEventSink<RE::TESHitEvent>
 {
@@ -175,5 +176,57 @@ public:
 
 	}
 	inline static REL::Relocation<decltype(WeaponFire)> _Weapon_Fire;
+};
+
+class AnimEventHandler
+{
+public:
+    static void Install()
+    {
+        logger::info("Installing AnimEventHook hook");
+
+        REL::Relocation<uintptr_t> AnimEventVtbl_PC{ RE::VTABLE_PlayerCharacter[2] };
+        _ProcessEvent_PC = AnimEventVtbl_PC.write_vfunc(0x1, ProcessEvent_PC);
+    }
+
+private:
+
+
+    inline static RE::BSEventNotifyControl ProcessEvent_PC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
+                                                            RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
+    {
+        ProcessCharacterEvent(a_sink, a_event, a_eventSource);
+        return _ProcessEvent_PC(a_sink, a_event, a_eventSource);
+    }
+
+    static void HandleJumpAnim()
+    {
+        auto settings = Settings::GetSingleton();
+        auto player   = RE::PlayerCharacter::GetSingleton();
+        if (!player->IsGodMode()) {
+            Utility::ApplySpell(player, player, settings->jumpSpell);
+        }
+    }
+
+    static void ProcessCharacterEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
+                                              [[maybe_unused]] RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
+    {
+        if (!a_event->holder) {
+            return;
+        }
+
+        std::string_view eventTag = a_event->tag.data();
+        uint32_t         str      = hash(eventTag.data(), eventTag.size());
+
+        RE::Actor* actor = const_cast<RE::Actor*>(a_event->holder->As<RE::Actor>());
+        if (!actor) {
+            return;
+        }
+
+        if (str == "JumpUp"_h) {
+            HandleJumpAnim();
+        }
+    }
+    inline static REL::Relocation<decltype(ProcessEvent_PC)> _ProcessEvent_PC;
 };
 
