@@ -49,7 +49,6 @@ void InitListener(SKSE::MessagingInterface::Message* a_msg)
 			settings->ReplacePowerAttackKeywords();
 		}
 
-        AnimationGraphEventHandler::Register();
         OnHitEventHandler::Register();
 
 		break;

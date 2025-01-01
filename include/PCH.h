@@ -270,12 +270,11 @@ namespace stl
 {
     using namespace SKSE::stl;
 
-    template <typename T>
-    constexpr auto write_thunk_call() noexcept
+    template <typename T, std::size_t Size = 5>
+    constexpr auto write_thunk_call(const std::uintptr_t a_address) noexcept
     {
-        SKSE::AllocTrampoline(14);
         auto& trampoline{ SKSE::GetTrampoline() };
-        T::func = trampoline.write_call<5>(T::address, T::Thunk);
+        T::func = trampoline.write_call<Size>(a_address, T::Thunk);
     }
 
     template <typename TDest, typename TSource>

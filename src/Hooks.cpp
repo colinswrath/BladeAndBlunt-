@@ -14,7 +14,8 @@ namespace Hooks
 		if (!MiscPatches::InstallSpellCapPatch()) {
 			return false;
 		}
-		
+
+        AnimEventHandler::Install();
 		WeaponFireHandler::InstallArrowReleaseHook();
 
 		auto runtime = REL::Module::GetRuntime();

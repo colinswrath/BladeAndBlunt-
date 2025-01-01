@@ -3,6 +3,8 @@
 #include <InjuryApplicationManager.h>
 #include <RecentHitEventData.h>
 
+using namespace Conditions;
+
 class OnHitEventHandler : public RE::BSTEventSink<RE::TESHitEvent>
 {
 public:
@@ -144,94 +146,6 @@ public:
 	}
 };
 
-class AnimationGraphEventHandler :
-    public RE::BSTEventSink<RE::BSAnimationGraphEvent>,
-    public RE::BSTEventSink<RE::TESObjectLoadedEvent>,
-    public RE::BSTEventSink<RE::TESSwitchRaceCompleteEvent>
-
-{
-public:
-
-    static AnimationGraphEventHandler* GetSingleton()
-    {
-        static AnimationGraphEventHandler singleton;
-        return &singleton;
-    }
-
-    const char* jumpAnimEventString = "JumpUp";
-
-    //Anims
-    RE::BSEventNotifyControl ProcessEvent(const RE::BSAnimationGraphEvent* a_event, [[maybe_unused]] RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource) override
-    {
-        if (!a_event) {
-            return RE::BSEventNotifyControl::kContinue;
-        }
-
-        if (!a_event->tag.empty() && a_event->holder && a_event->holder->As<RE::Actor>()) {
-            if (std::strcmp(a_event->tag.c_str(), jumpAnimEventString) == 0) {
-
-                HandleJumpAnim();
-            }
-        }
-        
-        return RE::BSEventNotifyControl::kContinue;
-    }
-
-    void HandleJumpAnim()
-    {
-        auto settings = Settings::GetSingleton();
-        auto player   = RE::PlayerCharacter::GetSingleton();
-        if (!player->IsGodMode()) {
-            Conditions::ApplySpell(player, player, settings->jumpSpell);
-        }
-    }
-
-    //Object load
-    RE::BSEventNotifyControl ProcessEvent(const RE::TESObjectLoadedEvent* a_event, [[maybe_unused]] RE::BSTEventSource<RE::TESObjectLoadedEvent>* a_eventSource) override
-    {
-        if (!a_event) {
-            return RE::BSEventNotifyControl::kContinue;
-        }
-        
-        const auto actor = RE::TESForm::LookupByID<RE::Actor>(a_event->formID);
-        if (!actor || !actor->IsPlayerRef()) {
-            return RE::BSEventNotifyControl::kContinue;
-        }
-
-        //Register for anim event
-        actor->AddAnimationGraphEventSink(AnimationGraphEventHandler::GetSingleton());
-
-        return RE::BSEventNotifyControl::kContinue;
-    }
-
-    // Race Switch
-    RE::BSEventNotifyControl ProcessEvent(const RE::TESSwitchRaceCompleteEvent* a_event, [[maybe_unused]] RE::BSTEventSource<RE::TESSwitchRaceCompleteEvent>* a_eventSource) override
-    {
-        if (!a_event) {
-            return RE::BSEventNotifyControl::kContinue;
-        }
-
-        const auto actor = a_event->subject->As<RE::Actor>();
-        if (!actor || !actor->IsPlayerRef()) {
-            return RE::BSEventNotifyControl::kContinue;
-        }
-
-        // Register for anim event
-        actor->AddAnimationGraphEventSink(AnimationGraphEventHandler::GetSingleton());
-
-        return RE::BSEventNotifyControl::kContinue;
-    }
-
-    static void Register()
-    {
-
-        //Register for load event, then in the load event register for anims
-        RE::ScriptEventSourceHolder* eventHolder = RE::ScriptEventSourceHolder::GetSingleton();
-        eventHolder->AddEventSink<RE::TESObjectLoadedEvent>(GetSingleton());
-        eventHolder->AddEventSink<RE::TESSwitchRaceCompleteEvent>(GetSingleton());
-    }
-};
-
 class WeaponFireHandler
 {
 public:
@@ -260,4 +174,57 @@ public:
 	}
 	inline static REL::Relocation<decltype(WeaponFire)> _Weapon_Fire;
 };
+
+class AnimEventHandler
+{
+public:
+    static void Install()
+    {
+        logger::info("Installing AnimEventHook hook");
+
+        REL::Relocation<uintptr_t> AnimEventVtbl_PC{ RE::VTABLE_PlayerCharacter[2] };
+        _ProcessEvent_PC = AnimEventVtbl_PC.write_vfunc(0x1, ProcessEvent_PC);
+    }
+
+private:
+    inline static RE::BSEventNotifyControl ProcessEvent_PC(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
+                                                           RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
+    {
+        ProcessCharacterEvent(a_sink, a_event, a_eventSource);
+        return _ProcessEvent_PC(a_sink, a_event, a_eventSource);
+    }
+
+    static void HandleJumpAnim()
+    {
+        auto settings = Settings::GetSingleton();
+        auto player   = RE::PlayerCharacter::GetSingleton();
+        if (!player->IsGodMode()) {
+            ApplySpell(player, player, settings->jumpSpell);
+        }
+    }
+
+    static void ProcessCharacterEvent(RE::BSTEventSink<RE::BSAnimationGraphEvent>* a_sink, RE::BSAnimationGraphEvent* a_event,
+                                      [[maybe_unused]] RE::BSTEventSource<RE::BSAnimationGraphEvent>* a_eventSource)
+    {
+        if (!a_event->holder) {
+            return;
+        }
+
+        std::string_view eventTag = a_event->tag.data();
+        uint32_t         str      = hash(eventTag.data(), eventTag.size());
+
+        RE::Actor* actor = const_cast<RE::Actor*>(a_event->holder->As<RE::Actor>());
+        if (!actor) {
+            return;
+        }
+
+        if (str == "JumpUp"_h) {
+            HandleJumpAnim();
+        }
+    }
+
+    inline static REL::Relocation<decltype(ProcessEvent_PC)> _ProcessEvent_PC;
+};
+
+
 

@@ -147,27 +147,22 @@ private:
 				    break;
 			    case 6:
 				    {
-                        //Cache mount and remove spell if not mounted
-					    auto* state = player->AsActorState();
+                        RE::ActorPtr actorCheck = nullptr;
+                        bool isMounted = player->GetMount(actorCheck);
+                        auto state = isMounted ? actorCheck->AsActorState() : player->AsActorState();
+
 					    if (state->IsSprinting()) {
 						    if (!HasSpell(player, settings->IsSprintingSpell))
 							    player->AddSpell(settings->IsSprintingSpell);
-                            
-						    RE::ActorPtr mount = nullptr;
-
-						    GetMount(player,&mount);
-                            if (mount) {
-							    mount->AddSpell(settings->MountSprintingSpell);
-						    }
+                            if (isMounted) {
+                                actorCheck->AddSpell(settings->MountSprintingSpell);
+                            }
 
 					    } else if (HasSpell(player, settings->IsSprintingSpell)) {
 						    player->RemoveSpell(settings->IsSprintingSpell);
 
-						    RE::ActorPtr mount = nullptr;
-						    GetMount(player,&mount);
-
-						    if (mount) {
-                                mount->RemoveSpell(settings->MountSprintingSpell);
+						    if (actorCheck) {
+                                actorCheck->RemoveSpell(settings->MountSprintingSpell);
 						    }
 					    }
 				    }
@@ -194,13 +189,6 @@ private:
 		UpdateManager::frameCount++;
 		return _OnFrameFunction(a1);
 	}
-
-    static bool GetMount(RE::Actor* a_actor, RE::ActorPtr* a_mountOut)
-    {
-        using func_t = decltype(&GetMount);
-        REL::Relocation<func_t> func{ REL::RelocationID(37757, 38702) };
-        return func(a_actor, a_mountOut);
-    }
 
 	inline static REL::Relocation<decltype(OnFrameUpdate)> _OnFrameFunction;
 
