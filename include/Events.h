@@ -1,7 +1,9 @@
 #pragma once
-#include <Utility.h>
+#include <Utility/Utility.h>
 #include <injury/InjuryApplicationManager.h>
 #include <RecentHitEventData.h>
+#include "Managers/TaskManager.h"
+
 using namespace Utility;
 
 class OnHitEventHandler : public RE::BSTEventSink<RE::TESHitEvent>
@@ -72,7 +74,7 @@ public:
                     //Incoming spells while warding do not injure
                     if (!isWarding || !(spellItem && spellItem->hostileCount > 0)) {
 					    auto injuryManager = InjuryApplicationManager::GetSingleton();
-                        injuryManager->ProcessHitInjuryApplication(causeActor, targetActor, applicationRuntime, chanceMult);
+                        injuryManager->ProcessHitInjuryApplication(causeActor, targetActor, applicationRuntime, chanceMult);                   
                     }
 				}
 
@@ -169,8 +171,13 @@ public:
             RE::BSTSmartPointer<RE::BSAnimationGraphManager> manager;
 
             auto playerCamera = RE::PlayerCamera::GetSingleton();
+
             if (playerCamera->bowZoomedIn) {
-                source->NotifyAnimationGraph("attackStop");
+                TaskManager::GetSingleton().AddTask(
+                    [source]() {
+                    source->NotifyAnimationGraph("attackStop");
+                },
+                std::chrono::milliseconds(500));
             }
 		}
 

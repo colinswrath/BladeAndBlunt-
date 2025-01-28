@@ -1,7 +1,7 @@
 #include "Settings.h"
 #include <SimpleIni.h>
 #include <sstream>
-#include "Cache.h"
+#include "Utility/Cache.h"
 
 Settings* Settings::GetSingleton()
 {

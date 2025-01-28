@@ -1,8 +1,8 @@
 #include "patches/MiscPatches.h"
 #include "Hooks.h"
-#include "Cache.h"
 #include "Settings.h"
-#include "Utility.h"
+#include "Utility/Cache.h"
+#include "Utility/Utility.h"
 
 namespace MiscPatches
 {

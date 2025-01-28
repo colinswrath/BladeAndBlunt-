@@ -1,7 +1,7 @@
 #pragma once
 
 #include <RecentHitEventData.h>
-#include <Utility.h>
+#include <Utility/Utility.h>
 #include <Settings.h>
 
 class InjuryApplicationManager

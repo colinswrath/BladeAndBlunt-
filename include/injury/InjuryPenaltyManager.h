@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Cache.h"
-#include "Utility.h"
+#include "Utility/Cache.h"
+#include "Utility/Utility.h"
 
 class InjuryPenaltyHandler
 {
